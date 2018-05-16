@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Leaflet - Multiple geometries from one GeoJSON source</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <meta http-equiv="content-type" content="text/html"; charset="UTF-8"/>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+	<!-- include leaflet.js library -->
+	<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+	<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js'></script>
+	<script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+	<script src='https://cdn.rawgit.com/brandonxiang/leaflet.geoJsonFilter/develop/src/L.geoJsonFilter.js'></script>
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+            }
+    </style>
+</head>
+<body>
+
+
+<!--<style>
+.coordinates {
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    padding:5px 10px;
+    margin: 0;
+    font-size: 11px;
+    line-height: 18px;
+    border-radius: 3px;
+    display: none;
+}
+</style>-->
+
+<div id='map'></div>
+<pre id='coordinates' class='coordinates'></pre>
+
+<script>
+
+// Holds mousedown state for events. if this
+// flag is active, we move the point on `mousemove`.
+var isDragging;
+
+// Is the cursor over a point? if this
+// flag is active, we listen for a mousedown event.
+var isCursorOverPoint;
+
+//var coordinates = document.getElementById('coordinates');
+var map = new L.Map('map');
+			
+				L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+	subdomains: 'abcd',
+	maxZoom: 19
+}).addTo(map);      
+
+//var canvas = map.getCanvasContainer();
+
+var geojson = {
+    "type": "FeatureCollection",
+    "features": [{
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates": [0, 0]
+        }
+    }]
+};
+
+function pinsStyle(feature) {
+        return {
+            stroke: false,
+            radius: 10,
+            fillColor: "#3887be",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 1,
+        };
+    };
+
+    //crecion de la capa vacia        
+    var LayerPins = L.geoJSON(false, {
+            pointToLayer: function(feature,latlng){
+                return L.circleMarker(latlng, pinsStyle(feature));
+            }
+    });
+
+function mouseDown() {
+    if (!isCursorOverPoint) return;
+
+    isDragging = true;
+
+    // Mouse events
+    map.on('mousemove', onMove);
+    map.once('mouseup', onUp);
+}
+
+function onMove(e) {
+    if (!isDragging) return;
+    var coords = e.latlng;
+    // Update the Point feature in `geojson` coordinates
+    // and call setData to the source layer `point` on it.
+    geojson.features[0].geometry.coordinates = [coords.lng, coords.lat];
+ LayerPins.clearLayers();
+   LayerPins.addData(geojson);
+ LayerPins.addTo(map);
+ console.log(geojson);
+    
+}
+
+function onUp(e) {
+    if (!isDragging) return;
+    var coords = e.lngLat;
+
+    // Print the coordinates of where the point had
+    // finished being dragged to on the map.
+    isDragging = false;
+
+    // Unbind mouse events
+    map.off('mousemove', onMove);
+}
+
+map.on('load', function() {
+
+    
+    
+    LayerPins.addData(geojson);
+    LayerPins.addTo(map);
+    
+    LayerPins.on('mouseover', function(e){
+        isCursorOverPoint = true;
+        map.dragging.disable();
+    });
+    
+    LayerPins.on('mouseout', function(e){
+        isCursorOverPoint = false;
+         map.dragging.enable();
+    });
+    
+     LayerPins.on('mousedown', mouseDown
+                  
+                  );
+});
+
+
+map.setView(new L.LatLng(0,0), 2);
+
+
+
+
+
+
+
+
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,675 @@
+<<!DOCTYPE html>
+<html>
+	<head>
+		<title>Leaflet</title>
+		<meta http-equiv="content-type" content="text/html"; charset="UTF-8"/>
+		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+		<!-- include leaflet.js library -->
+		<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+		<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js'></script>
+		<script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+		<script src='https://cdn.rawgit.com/brandonxiang/leaflet.geoJsonFilter/develop/src/L.geoJsonFilter.js'></script>
+		
+		<style>
+			 body {
+				margin: 0;
+				padding: 0;
+			}
+      
+			.container {
+			    display: flex;
+			}
+  
+			#map {
+			  position: absolute;
+			  top: 0;
+			  bottom: 0;
+			  right: 0;
+			  left: 45px;
+			  height: 100%;
+			}
+			
+			 #duration {
+				position: absolute;
+				padding: 0.5% 0 0.5% 1%;
+				width: 200px;
+				right: 0px;
+				top: 0%;
+				bottom: 95%;
+				background-color: rgba(34,43,48,0.2);
+				overflow-y: hidden;
+				font-family: sans-serif;
+				font-size: large;
+			}	
+
+			#distance {
+			  position: absolute;
+			  padding: 0.5% 0 0.5% 1%;
+			  width: 200px;
+			  right: 0px;
+			  top: 5%;
+			  bottom: 90%;
+			  background-color: rgba(34,43,48,0.8);
+			  overflow-y: hidden;
+			  font-family: sans-serif;
+			  font-size: large;
+			  color: #ffffff;
+			}
+		
+			.sidebar {
+			  position: absolute;
+			  background-color: rgba(34,43,48,1);
+			  font-family: Arial, sans-serif;
+			  top:0;
+			  bottom:0;
+			  height:100%;
+			  width:45px;
+			  left:0%
+   
+			}
+	
+			.button{
+			  color: #fff;
+			}
+      
+			#new-line-button{
+			  color: #fff;
+			  position: absolute;
+			  top:5%;
+			  padding:0% 0% 0% 15%;
+			}
+		
+			#newLine-sidebar{
+			  position: absolute;
+			  border-top-right-radius: 15px;
+			  border-bottom-right-radius: 15px;
+			  padding: 8px 0px 0px 0px;
+			  left: 100%;
+			  top:9.5%;
+			  height:25px;
+			  width:150px;
+			  color: #FFFFFF;
+			  font-family: Arial, sans-serif;
+			  text-align: center;
+			}
+     
+			#directions{
+			  position: absolute;
+			  border-radius: 15px;
+			  background-color: rgba(34,43,48,1);
+			  padding: 10px 0px 0px 0px;
+			  left:70%;
+			  bottom:5%;
+			  height:25px;
+			  color: #FFFFFF;
+			  font-size: 12px;
+			  font-family: Arial, sans-serif;
+			  text-align: center;
+			} 
+    
+			.class-directions{
+			  display: inline-block; /*por aca esta la cosa me parece*/
+			  width: 100px;
+			  height:15px;
+			  overflow: hidden;
+      
+			}
+      
+			#inbound{
+			  border-right: 1px solid white;
+			}
+		</style>
+		
+		
+	</head>
+	<body>
+		<div class='container'>
+			<div id="map"></div>
+			<div id='duration' style="z-index:650;">0 min</div>
+			<div id='distance' style="z-index:650;">0 km</div>
+			
+			<div id='sidebar' class='sidebar'>
+				<!--NEW LINE-->
+				<div id='new-line-button' class='drawing'><img src="Leaflet/1-Leaflet/add.png" alt="new-line-icon" style="float:left;width:25px;height:25px;"></div>
+				    <!--<div id='newLine-sidebar' class='finishDrawing'>Finish Drawing</div>-->
+				    <div id='newLine-sidebar' class='drawing' style="z-index:650;">Finish Drawing</div>
+			</div>
+			<div id='directions'>
+			  <div id='inbound' class='class-directions' style="z-index:650;" ondblclick="editDirectionName(this);">INBOUND</div>
+			  <div id='outbound' class='class-directions' style="z-index:650;" ondblclick="editDirectionName(this);">OUTBOUND</div>
+			</div>
+		</div>
+		<script>
+				var map = new L.Map('map', {
+						zoomControl: false,
+						center: [40.43048497001667,-3.6900329589843754],
+						zoom: 13
+					});
+			
+				L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.{ext}', {
+					attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+					subdomains: 'abcd',
+					minZoom: 0,
+					maxZoom: 20,
+					ext: 'png'
+				})
+				.addTo(map);
+				
+				//CARTO DB TILE
+				//L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
+				//	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+				//	subdomains: 'abcd',
+				//	maxZoom: 19
+				//}).addTo(map);    
+				
+				//add zoom control with your options
+				L.control.zoom({
+					position:'bottomleft'
+				}).addTo(map);
+				
+				 // Holds mousedown state for events. if this
+				// flag is active, we move the point on `mousemove`.
+				var isDragging;
+				var routeSelected;
+				// Is the cursor over a point? if this
+				// flag is active, we listen for a mousedown event.
+				var isCursorOverPoint;
+      
+				//Variable to indicate the position of the feature in
+				//a feature collection
+				var featurePosition=0;
+      
+				var pointNumber=0;
+				var propNumber=0;
+				var pointLineID=0;
+      
+				// Create an empty GeoJSON feature collection for STOPS locations  
+				var pins = turf.featureCollection([]);
+				var allpoints=[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+				//Create an empty GeoJSON feature collection for all the ROUTES
+				var routes=turf.featureCollection([]);
+				// Create an empty GeoJSON feature collection, which will be used as the data source for the route before users add any new data
+				var nothing = turf.featureCollection([]);
+				//If this flag is active we draw a new point with each click on the map
+				var isDrawing;
+				var inbound=true;
+				var lineID=1;
+				var direction=0;
+				var lineName;
+				var colorPalette=['rgba(50,14,59,1)','rgba(186,155,52,1)','rgba(4,55,113,1)','rgba(99,19,21,1)','rgba(209,76,118,1)','rgba(200,79,45,1)','rgba(43,114,34,1)','rgba(28,119,195,1)','rgba(94,32,1,1)'];
+				var lineColor;
+				var duration;
+				var distance;
+      
+				var routeCreated;
+      
+				var lineMooving;
+				var linePointMoovingID;
+				
+				function main() {
+					$('#newLine-sidebar').hide();
+					$('#directions').hide();
+			
+					//variable to indicate if the sidebar is active or not
+					toggle=0;
+  
+					//show and hide sidebar
+					$('.button').on('click', function() {
+					    if (toggle==0){
+					      $(this).next().slideToggle(400);
+					      $(this).toggleClass('active');
+					      toggle=1;
+					    } else {
+					        hideSidebar();
+					    }
+					});
+
+				}
+				$(document).ready(main);
+				
+				//DRAWING A NEW LINE
+				function drawButton(){  
+				  $('.drawing').on('click', function() {
+				    if(!isDrawing){
+				        isDrawing=true;
+				        routeSelected = true;
+				        featurePosition = routes.features.length;
+				        pointLineID=0;
+				        lineName= 'Line ' + lineID;
+				        //Show the finish drawing div
+				        $(this).next().show();
+				        $(this).toggleClass('active');
+		    
+				        hideSidebar();
+				        changeColor();
+				        inboundOutbount();
+              
+				        hideRoutelineActive();
+				        hideRoutelineHover();
+				        hideArrows();
+				        hidePins();
+				        map.setPaintProperty('routeline-inactive', 'line-opacity', 0.5);
+              
+            
+				    } else {
+				        //Finish drawing
+				        isDrawing=false;
+				        routeSelected = false;
+				        inbound=true;
+				        outOfDrawingMode();
+				        if (routeCreated){
+				          lineID = routes.features[featurePosition].properties.lineID + 1;
+				          routeCreated=false;
+				        }
+				    }
+				  });
+				}
+				$(document).ready(drawButton);
+				
+				//CHANGE COLOR OF SIDEBAR AND INBOUND OUTBOUND
+				function changeColor(){
+				    lineColor = colorPalette[Math.floor((Math.random() * colorPalette.length))];
+				    //Change the sidebar color  
+				    document.getElementById("sidebar").style.backgroundColor = lineColor;
+				    //Color of finish drawing
+				    document.getElementById('newLine-sidebar').style.backgroundColor = lineColor;
+				    //Show inbound and outbound in the color of the line
+				    $('#directions').show();
+				    document.getElementById("directions").style.backgroundColor = lineColor;
+				}
+				
+				//INTERACTION FOR DRAWING INBOUND AND OUTBOUND
+      function inboundOutbount(){
+        $('#inbound').on('click', function() {
+          inbound=true;
+          clickInbound = 1;
+          featurePosition = routes.features.length;
+          direction=0; //direction will be 0 to match the GTFS directions
+          pointLineID = allpoints[featurePosition].length;
+          console.log(routeCreated);
+          console.log(pins);
+          //var hoverFilter = ['all', ["!=", "featurePosition", routes.features[featurePosition].properties.featurePosition],["==", "lineID", routes.features[featurePosition].properties.lineID]];
+          //map.setFilter('routeline-hover', hoverFilter);  
+        });
+        $('#outbound').on('click', function() {
+          inbound=false;
+          clickOutbound = 1;
+          featurePosition = routes.features.length;
+          direction=1; //direction will be 1 to match the GTFS directions
+          pointLineID = allpoints[featurePosition].length;
+          console.log(routes);
+          
+          map.setPaintProperty('routeline-inactive', 'line-opacity', 0.5);
+          //var hoverFilter = ['all', ["!=", "featurePosition", routes.features[featurePosition - 1].properties.featurePosition],["==", "lineID", routes.features[featurePosition - 1].properties.lineID]];
+          hideRoutelineActive();
+          hideArrows();
+          hidePins();
+          var hoverFilter = ['all',["==", "lineID", lineID],['!=', 'direction',direction]];
+          map.setFilter('routeline-hover', hoverFilter);  
+        });
+      }
+     
+      function hideRoutelineActive(){
+          map.setFilter('routeline-active', ["==", "featurePosition", '']);
+      }
+      
+      function hideArrows(){
+          map.setFilter('routearrows', ["==", "featurePosition", '']);
+      }
+      
+      function hideRoutelineHover(){
+          map.setFilter('routeline-hover', ["==", "featurePosition", '']);
+      }
+      
+      function hidePins(){
+          map.setFilter('pins-symbol', ["==", "featurePosition", '']);        
+      }
+      
+      function outOfDrawingMode(){
+          //Hide the check button
+          $('#newLine-sidebar').hide(200);
+          document.getElementById("sidebar").style.backgroundColor = "rgba(34,43,48,1)";
+          //Hide inbound and outbound
+          $('#directions').hide(200);
+      }
+      
+      function hideActiveLayer(){
+          hideRoutelineActive();
+          hideRoutelineHover();
+          hideArrows();
+          hidePins();
+          map.setPaintProperty('routeline-inactive', 'line-opacity', 1);
+          routeSelected = false;
+      }
+      
+      function editDirectionName(direction) {
+        //if (direction.contentEditable == "true") {
+        //    direction.contentEditable = "false";
+        //} else {
+        //    direction.contentEditable = "true";
+        //}
+        //Al darle a "enter" deja de ser editable
+        direction.addEventListener("keyup", function(event){
+          event.preventDefault();
+          if (event.keyCode===13){
+              direction.contentEditable = "false";
+          }
+        });
+        
+        //Con el doble click hacemos el campo editable
+        direction.contentEditable = "true";
+      }
+      
+      function mouseDown() {
+          if (!isCursorOverPoint) return;
+
+          isDragging = true;    
+
+          // Mouse events
+          map.on('mousemove', onMove);
+          map.once('mouseup', onUp);
+      }
+
+      function onMove(e) {
+          if (!isDragging) return;
+          var coords = e.lngLat;
+
+          // Update the Point feature in `geojson` coordinates
+          // and call setData to the source layer `point` on it.
+          pins.features[pointNumber].geometry.coordinates = [coords.lng, coords.lat];
+          allpoints[lineMooving][linePointMoovingID] = [coords.lng, coords.lat];
+          
+          updateDropoffs(pins); 
+          assembleQueryURLOnMove();
+          requestAPIOnMove(pins);
+    
+      }
+
+      function onUp(e) {
+          if (!isDragging) return;
+          var coords = e.lngLat;
+
+          // Print the coordinates of where the point had
+          // finished being dragged to on the map.
+          isDragging = false;
+          
+          //Update the pins feature colection and request the new route
+          //updateDropoffs(pins); 
+          //assembleQueryURL();
+          //requestAPI(pins);
+          
+          // Unbind mouse events
+          map.off('mousemove', onMove);
+      }
+      
+      
+      
+    
+      
+      map.on('load', function() {
+        map.addSource('routes', {
+          type: 'geojson',
+          data: nothing
+        });
+        
+        map.addSource('pins', {
+          type: 'geojson',
+          data: nothing
+        });
+        
+        //Active line layer
+        map.addLayer({
+          id: 'routeline-active',
+          type: 'line',
+          source: 'routes',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-opacity': 1,
+            'line-width': 7,
+          }, "filter": ["==", "featurePosition", ""]
+        }, 'waterway-label');
+        
+        //Inactive lines layer
+        map.addLayer({
+          id: 'routeline-inactive',
+          type: 'line',
+          source: 'routes',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-opacity': 1,
+            'line-width': 3,
+          }
+        }, 'waterway-label');
+        
+        //Hover line layer
+        map.addLayer({
+          id: 'routeline-hover',
+          type: 'line',
+          source: 'routes',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-opacity': 0.5,
+            'line-width': 7,
+          }, "filter": ["==", "featurePosition", ""]
+        }, 'waterway-label');
+        
+        
+        //Pins layer        
+        map.addLayer({
+          id: 'pins-symbol',
+          type: 'circle',
+          source: {
+            data: pins,
+            type: 'geojson'
+          },
+          paint: {
+            'circle-opacity': 1,
+            'circle-radius': 7,
+            'circle-color': ['get', 'pointColor'],
+            'circle-stroke-color':'white',
+            'circle-stroke-width':2,
+          }, "filter": ["==", "featurePosition", ""]
+        });
+        
+        map.addLayer({
+          id: 'routearrows',
+          type: 'symbol',
+          source: 'routes',
+          layout: {
+            'symbol-placement': 'line',
+            'text-field': '▶',
+            'text-size': {
+               base: 1,
+               stops: [[12, 24], [22, 60]]
+            },
+            'symbol-spacing': {
+              base: 1,
+              stops: [[12, 30], [22, 160]]
+            },
+            'text-keep-upright': false,
+            //'text-size': 40,
+          },
+          paint: {
+            'text-color': ['get', 'color'],
+            'text-opacity': 1,
+            'text-halo-color': 'rgba(246,246,244,1)',
+            'text-halo-width': 2
+          }, "filter": ["==", "featurePosition", ""]
+        }, 'waterway-label');
+        
+        //SELECT A LINE
+        map.on("click", 'routeline-inactive', function(e) {
+            map.setFilter('routeline-active', ["==", "featurePosition", e.features[0].properties.featurePosition]);
+            var hoverFilter = ['all', ["!=", "featurePosition", e.features[0].properties.featurePosition],["==", "lineID", e.features[0].properties.lineID]];
+            map.setFilter('routeline-hover', hoverFilter);
+            map.setFilter('routearrows', ["==", "featurePosition", e.features[0].properties.featurePosition]);
+            map.setFilter('pins-symbol', ["==", "featurePosition", e.features[0].properties.featurePosition]);
+            map.setPaintProperty('routeline-inactive', 'line-opacity', 0.5);
+            routeSelected = true;
+        });
+        
+        //HOVER ON A LINE
+        map.on("mousemove", 'routeline-inactive', function(e) {
+            if(!routeSelected){
+                map.setFilter('routeline-hover', ["==", "featurePosition", e.features[0].properties.featurePosition]);
+                map.setFilter('routearrows', ["==", "featurePosition", e.features[0].properties.featurePosition]);
+            }
+        });
+        
+        //LEAVE A LINE
+        map.on("mouseleave", 'routeline-inactive', function() {
+           if(!routeSelected){
+             hideRoutelineHover();
+             hideArrows();
+           }
+        });
+        
+        // When the cursor enters a feature in the point layer, prepare for dragging.
+        map.on('mousemove','pins-symbol',function(e){
+            isCursorOverPoint = true;
+            map.dragPan.disable();
+            pointNumber=e.features[0].properties.pointID;
+            lineMooving = e.features[0].properties.featurePosition;
+            linePointMoovingID = e.features[0].properties.pointLineID;
+        });
+        map.on('mouseleave', 'pins-symbol', function() {
+            isCursorOverPoint = false;
+            map.dragPan.enable();
+        });
+        map.on('mousedown', mouseDown);
+        
+      });
+      
+      // Listen for a click on the map: draw a line if it's in drawing mode
+      // hide de floating sidebar if not in drawing mode
+      map.on('click', function(e) {
+              // When the map is clicked, add a new drop-off point
+              // and update the `pins-symbol` layer
+              if (isDrawing){
+                  newDropoff(map.unproject(e.point));
+                  updateDropoffs(pins);
+              } else {
+                   hideSidebar();
+                   hideActiveLayer();
+              }
+          });
+      
+      //Creates a new pin
+      function newDropoff(coords) {
+        // Store the clicked point as a new GeoJSON feature with
+        var pt = turf.point(
+          [coords.lng, coords.lat],
+          {
+            featurePosition: featurePosition,
+            lineID: lineID,
+            pointID: propNumber,
+            pointLineID: pointLineID,
+            direction: direction,
+            pointColor: lineColor,
+          }
+        );
+          
+          pointLineID = pointLineID + 1;
+           //Update pins feature collection
+          pins.features.push(pt);
+          
+          //Update the matrix with the coordinates
+          //console.log(featurePosition);
+          allpoints[featurePosition].push(pt.geometry.coordinates);
+          propNumber = pins.features[pins.features.length - 1].properties.pointID + 1;
+          requestAPI(pins);  
+          map.setFilter('pins-symbol',["==", "featurePosition", pins.features[pins.features.length - 1].properties.featurePosition]);
+      }
+      
+      //PETICION A LA API PARA CADA LINEA NUEVA
+      function requestAPI(){
+        // Make a request to the Optimization API
+        if (allpoints[featurePosition].length > 1) {
+          $.ajax({
+            method: 'GET',
+            url: assembleQueryURL(),
+          }).done(function(data) {
+               var routedraw = turf.lineString(
+                                               data.routes[0].geometry.coordinates,
+                                               {
+                                                featurePosition: featurePosition,
+                                                lineID: lineID,
+                                                lineName: lineName,
+                                                direction: direction,
+                                                duration: ((data.routes[0].duration)/60).toFixed(1),
+                                                distance: ((data.routes[0].distance)/1000).toFixed(2),
+                                                color: lineColor,
+                                                });
+               
+               //Update routes with every click
+               routes.features[featurePosition]=routedraw;
+               //Update the 'route' source so it can be drawn
+               map.getSource('routes')
+                 .setData(routes);
+              
+              map.setFilter('routeline-active', ["==", "featurePosition", routes.features[featurePosition].properties.featurePosition]);
+              //var hoverFilter = ['all', ["!=", "featurePosition", routes.features[featurePosition].properties.featurePosition],["==", "lineID", routes.features[featurePosition].properties.lineID]];
+              //map.setFilter('routeline-hover', hoverFilter);  
+              map.setFilter('routearrows', ["==", "featurePosition", routes.features[featurePosition].properties.featurePosition]);
+    
+            });
+          routeCreated=true;
+              
+        }  
+      }
+      
+      //PETICION A LA API PARA CADA LINEA NUEVA
+      function requestAPIOnMove(){
+        // Make a request to the Optimization API
+        if (pins.features.length > 1) {
+          $.ajax({
+            method: 'GET',
+            url: assembleQueryURLOnMove(),
+          }).done(function(data) {
+               var routedraw = data.routes[0].geometry;
+               var distance = ((data.routes[0].distance)/1000).toFixed(2);
+               var duration = ((data.routes[0].duration)/60).toFixed(1);
+               //Update the route
+               routes.features[lineMooving].geometry=routedraw;
+               routes.features[lineMooving].properties.distance=distance;
+               routes.features[lineMooving].properties.duration=duration;
+               //Update the 'route' source so it can be drawn
+               map.getSource('routes')
+                 .setData(routes);
+    
+            });  
+        }  
+      }
+      
+      //ESTO VA A TENER QUE CAMBIAR PARA HACERLO PARA CADA LINEA
+      function updateDropoffs(geojson) {
+        map.getSource('pins-symbol')
+          .setData(geojson);
+      }
+      
+      //ENSAMBLAR UN QUERY PARA CADA LINEA NUEVA
+      // Here you'll specify all the parameters necessary for requesting a response from the Optimization API
+      function assembleQueryURL() {
+        //Include all the waypoints in the URL
+        return 'http://router.project-osrm.org/route/v1/driving/' + allpoints[featurePosition].join(";") + '?geometries=geojson&overview=simplified';
+      }
+      
+      function assembleQueryURLOnMove() {
+        //Include all the waypoints in the URL
+        return 'http://router.project-osrm.org/route/v1/driving/' + allpoints[lineMooving].join(";") + '?geometries=geojson&overview=simplified';
+      }
+		</script>
+	</body>
+</html>

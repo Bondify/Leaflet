@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Leaflet - Multiple geometries from one GeoJSON source</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <meta http-equiv="content-type" content="text/html"; charset="UTF-8"/>
+		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+		<!-- include leaflet.js library -->
+		<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+		<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js'></script>
+		<script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+		<script src='https://cdn.rawgit.com/brandonxiang/leaflet.geoJsonFilter/develop/src/L.geoJsonFilter.js'></script>
+    
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<script>
+var map = new L.Map('map');
+			
+				L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+	subdomains: 'abcd',
+	maxZoom: 19
+}).addTo(map);        
+
+var clicked=0;
+var pins = turf.featureCollection([]);
+var allpoints=[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+
+map.on("load", function() {
+    
+    var myLines = [{
+        'type': 'FeatureCollection',
+        'features':[
+        {"type":'Feature',
+        "properties": {
+                    "linename": "Line 1",
+                    "linenumber": 1,
+                    "color": '#08306b',
+            },
+        "geometry":{
+            "type": "LineString",
+            "coordinates": [
+                        
+                            [-3.727782,40.472765],
+                            [-3.723565,40.474139],
+                            [-3.721012,40.475794],
+                            [-3.720169,40.476016],
+                            [-3.716225,40.478788],
+                            [-3.713034,40.479868],
+                            [-3.712621,40.479794],
+                            [-3.7123,40.480082],
+                            [-3.709091,40.480733],
+                            [-3.7054,40.481493],
+                            [-3.704824,40.481372],
+                            [-3.704728,40.481966],
+                            [-3.69534,40.485323],
+                            [-3.692903,40.48508],
+                            [-3.685314,40.482306],
+                            [-3.68415,40.482332],
+                            [-3.679372,40.483584],
+                            [-3.675956,40.483809],
+                            [-3.674174,40.48272],
+                            [-3.674077,40.480852],
+                            [-3.674558,40.477319],
+                            [-3.674125,40.474899],
+                            [-3.672967,40.472449],
+                            [-3.668961,40.466903]
+                        
+                    ] 
+        }}, {
+        "type":'Feature',
+            "properties": {
+                        "linename": "Line 2",
+                        "linenumber": 2,
+                        "color": '#e31a1c',
+            },
+            "geometry":{
+                "type": "LineString",
+                "coordinates": [
+                            [-3.738204,40.434551],
+                            [-3.737995,40.436295],
+                            [-3.737541,40.436783],
+                            [-3.736704,40.436839],
+                            [-3.735574,40.43566],
+                            [-3.734823,40.434056],
+                            [-3.731963,40.433955],
+                            [-3.730395,40.432963],
+                            [-3.727178,40.432569],
+                            [-3.724329,40.42945],
+                            [-3.722224,40.428856],
+                            [-3.721395,40.42891],
+                            [-3.71644,40.430521],
+                            [-3.714584,40.430408],
+                            [-3.715508,40.429686],
+                            [-3.716087,40.430502],
+                            [-3.705442,40.429501],
+                            [-3.695697,40.427573],
+                            [-3.691528,40.425499],
+                            [-3.690305,40.42455],
+                            [-3.688126,40.423975],
+                            [-3.678584,40.423511],
+                            [-3.677278,40.424076],
+                            [-3.676459,40.423977],
+                            [-3.67656,40.424185],
+                            [-3.676751,40.424309],
+                            [-3.675722,40.42479],
+                            [-3.668802,40.424434],
+                            [-3.669135,40.4211],
+                            [-3.657876,40.418333],
+                            [-3.657067,40.417822],
+                            [-3.657415,40.417185],
+                            [-3.658023,40.417171],
+                            [-3.65841,40.417471],
+                            [-3.658488,40.420018],
+                            [-3.660523,40.431408]
+                    ]    
+            }
+        }
+    ]}];
+    
+    function style(feature){
+        return {
+            color:feature.properties.color,
+            weight: 3,
+        };
+    }
+    
+    LayerInactive = L.geoJSON(myLines);
+    LayerActive = L.geoJSON(myLines,{style: style});
+    
+    FeatureInactive = L.featureGroup(LayerInactive);
+    //FeatureActive = L.featureGroup(myLines,{style: style});
+    LayerInactive.addTo(map);
+    
+    //LayerPins = L.geoJSON(pins);
+    //LayerPins.addTo(map);
+        
+});
+map.setView(new L.LatLng(40.43048497001667,-3.6900329589843754), 13);
+//hasta aqui llega map.on(load)
+
+//////////////////////////////////////////
+//interaccion con capa de lineas inactiva
+//////////////////////////////////////////
+LayerInactive.on('click', function(e) {
+        console.log(e);
+        LayerActive.addTo(map);
+        map.removeLayer(LayerInactive);
+        }); 
+
+//////////////////////////////////////////
+//creacion de pins y estilo del mismo
+//////////////////////////////////////////
+
+//Estilo de pins
+function pinsStyle(feature) {
+        return {
+            stroke: false,
+            radius: 10,
+            fillColor: feature.properties.pointColor,
+            color: "#000",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.4
+        };
+    };
+
+//crecion de la capa vacia        
+var LayerPins = L.geoJSON(false, {
+            pointToLayer: function(feature,latlng){
+                return L.circleMarker(latlng, pinsStyle(feature));
+            }
+    });
+
+//crear un nuevo punto cuando se hace click
+function newDropoff(e){
+        // Store the clicked point as a new GeoJSON feature with
+        var pt = turf.point(
+            [e.latlng.lng, e.latlng.lat],
+            {
+                pointColor: '#08306b',
+            }
+            
+        );
+        pins.features.push(pt);
+        console.log(pins);
+    
+        LayerPins.addData(pt);
+        LayerPins.addTo(map);
+        console.log(LayerPins);
+    };
+
+//llamar la funcion con cada click
+map.on('click',
+    newDropoff
+    //onMapClick
+    //updateDropoffs(pins)
+    );
+
+
+
+
+
+
+</script>
+
+</body>
+</html>
